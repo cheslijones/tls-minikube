@@ -39,7 +39,7 @@ What we'll do to get this working is the following:
 
 # Setting up the project
 
-
+*Note*: I only have experience successfully doing this in Linux and macOS. I've spent countless hours trying to get the `docker`, `kubectl`, `minikube`, and `skaffold` stack working in WSL2 on Windows with no success. I've never tried on Windows natively or with `choco`. I'll provide links to installs for all three OSes, but I'm not able to provide much support when it comes to Windows.
 
 ## <a name="install"></a> Installation (or Cloning)
 
