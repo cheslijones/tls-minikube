@@ -7,7 +7,7 @@ There were a few issues I came across when I was integrating the current web app
 1. Needing `https://` for redirect URLs. `http://` only works with `localhost`, which circumvents cluster routing.
 2. Sure, you can just provide a redirect URL of `https://<minikube-ip>`, but the browser "safety" warning messages due to an invalid certificate get pretty annoying.
 3. While you can implement TLS on an IP address--[it isn't a common practice](https://stackoverflow.com/questions/2043617/is-it-possible-to-have-ssl-certificate-for-ip-address-not-domain-name)--it is prohibited on non-public IPs (e.g., `192.168.x.x`), which is likely what `minikube ip` will provide.
-4. **Most importantly**: *the need to encrypt data both ways when communicating with an external web API*.
+4. **Most importantly**: *the need to encrypt data in transit when communicating with an external web API*.
 
 # Credit
 
@@ -346,6 +346,10 @@ You should see the following if successful:
 ```
 secret/tls-testapp-dev created
 ```
+### *`.pem`* Warning
+
+**DO NOT COMMIT THESE. Either add `*.pem` to `.gitignore` or just delete them as they are not needed after the previous step.**
+
 ### The `issuer.yaml` File
 
 TODO: Provide a better explanation on what is exactly happening here between the end-user's browser, `ingress-nginx`, and the TLS certificates.
