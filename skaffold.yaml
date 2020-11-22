@@ -1,0 +1,30 @@
+apiVersion: skaffold/v2beta1
+kind: Config
+build:
+  artifacts:
+  - image: client
+    context: client
+    sync:
+      manual:
+      - src: 'src/**/*.js'
+        dest: .
+      - src: 'src/**/*.jsx'
+        dest: .
+      - src: 'package.json'
+        dest: .
+      - src: 'public/**/*.html'
+        dest: .
+      - src: 'src/assets/sass/**/*.scss'
+        dest: .
+      - src: 'src/build/**/*.js'
+        dest: .
+    docker:
+      dockerfile: Dockerfile.dev
+  local:
+    push: false
+deploy:
+  kubectl:
+    manifests:
+      - k8s/ingress-ip.yaml 
+      # - k8s/ingress-domain.yaml 
+      - client/deployment.yaml
