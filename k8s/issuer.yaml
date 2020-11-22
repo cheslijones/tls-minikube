@@ -1,0 +1,21 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: letsencrypt-dev-issuer
+  namespace: cert-manager
+spec:
+  ca:
+    secretName: tls-testapp-dev
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: letsencrypt-dev-certificate
+  namespace: cert-manager
+spec:
+  secretName: tls-testapp-dev
+  dnsNames:
+    - testapp.local
+  issuerRef:
+    name: letsencrypt-dev-issuer
+    kind: Issuer

@@ -262,11 +262,116 @@ In your browser, now navigate to `testapp.local`.
 
 Again, you should see the `create-react-app` page. As well, navigating to `https://testapp.local` we get the same warning.
 
+Do a `CTRL + C` to stop the cluster.
+
 ## <a name="certificate"></a> Adding TLS certificate
 
-At this point, our cluster spinning up correctly and the `host` naming is working too.
+At this point, our cluster spinning up correctly and the `host` naming is working too. Now we need to add the TLS certificate.
 
+### Installing `mkcert` and Generating Certificates
+
+[`mkcert`](https://github.com/FiloSottile/mkcert), as the repo says, is a "... simple zero-config tool to make locally trusted development certificates with any names you'd like." It is, and does, just that.
+
+Please refer to [the documentation](https://github.com/FiloSottile/mkcert#installation) for instructions for your OS.
+
+Once installed, all you should need to do is the following:
+
+```
+$ mkcert -install        
+The local CA is already installed in the system trust store! 👍
+The local CA is now installed in the Firefox trust store (requires browser restart)! 🦊
+
+$ mkcert testapp.local
+
+Created a new certificate valid for the following names 📜
+ - "testapp.local"
+
+The certificate is at "./testapp.local.pem" and the key at "./testapp.local-key.pem" ✅
+```
+You'll see that `testapp.local-key.pem` and `testapp.local.pem` have been created in your project's root directory.
+
+### Installing `cert-manager`
+
+Next, we need to [install `cert-manager`](https://cert-manager.io/docs/installation/kubernetes/#installing-with-regular-manifests) using one of the following commands:
+
+```
+# Kubernetes 1.16+
+$ kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v1.0.4/cert-manager.yaml
+
+# Kubernetes <1.16
+$ kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v1.0.4/cert-manager-legacy.yaml
+```
+More than likely, you'll be on `kubectl 1.16+`.
+
+Run the following command to make sure the related Pods have been created and do not continue until they have.
+```
+$ kubectl get pods --namespace cert-manager
+NAME                                       READY   STATUS    RESTARTS   AGE
+cert-manager-86548b886-wcl6r               1/1     Running   0          29s
+cert-manager-cainjector-6d59c8d4f7-hws49   1/1     Running   0          29s
+cert-manager-webhook-578954cdd-hn749       1/1     Running   0          29s
+```
+When `READY` is `1/1` for all through, you are good to continue.
+
+### Adding the Certficates to k8s Secrets
+
+The `.pem` files that were created by `mkcert testapp.local` need to be added to our k8s cluster secrets. 
+
+The reason being is this line in the `ingress-domain.yaml`:
+```
+...
+  tls:
+    - hosts:
+        - testapp.local
+      # this line
+      secretName: tls-testapp-dev
+...
+```
+And these lines in the `issuer.yaml` (I'll discuss in the next sections):
+```
+...
+spec:
+  ca:
+    secretName: tls-testapp-dev
+...
+spec:
+  secretName: tls-testapp-dev
+...
+```
+So to add add their contents as secrets, run the following command (make sure you are in the same directory still as the `.pem` files):
+```
+kubectl create secret tls tls-testapp-dev --key=testapp.local-key.pem --cert=testapp.local.pem
+```
+You should see the following if successful:
+```
+secret/tls-testapp-dev created
+```
+### The `issuer.yaml` File
+
+TODO: Provide a better explanation on what is exactly happening here between the end-user's browser, `ingress-nginx`, and the TLS certificates.
+
+Basically, we need to apply this manifest to our cluster with:
+
+`kubectl apply -f k8s/issuer.yaml`
+
+If successful, you should see:
+
+```
+issuer.cert-manager.io/letsencrypt-dev-issuer created
+certificate.cert-manager.io/letsencrypt-dev-certificate created
+```
+
+### Finally....
+
+Run `skaffold dev` again.
+
+Navigate to `testapp.local` and if everything was done correctly, you should automatically be directed to `https://testapp.local` and have no warning messages from your browser!
 
 # Questions, Issues and Feedback
 
-Please create an issue if you have any questions, issues running the repo, or have feedback on how I can improve this repo or correct something that is wrong.
+Please create an issue if you have any questions, issues running the repo, or have feedback on how I can improve this repo or correct something that is wrong. I'm always looking for ways to improve.
+
+# TODO
+- Better explanations on what is going on in k8s between different Pods and Services.
+- Need to see if there is a more efficient way to keep the `host` up-to-date with the current `minikube ip`
+- When using local `host` DNS, initial navigation is considerably slower. Need to see if there is a way to improve this.
