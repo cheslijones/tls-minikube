@@ -127,6 +127,7 @@ The repo comes with the `./ingress-ip.yaml`, `./client/deployment.yaml`, `./clie
 
 - [`./ingress-ip.yaml`](https://github.com/cheslijones/tls-dev-k8s/blob/main/k8s/ingress.yaml): This your `ingress-nginx` ingress controller configuration. It accepts traffic for our web application and then routes it to the appropriate running service. For example, traffic going to our root route (`http://example.com/`) will be routed to the running `client` app.
 - [`./client/deployment.yaml`](https://github.com/cheslijones/tls-dev-k8s/blob/main/client/deployment.yaml): This is the configuration for the `create-react-app` `client` service. This gives the `client` service an IP in the cluster so when `ingress-nginx` receives traffic heading to `/`, it knows what Deployment to send the traffic to.
+- [`./client/Dockerfile.dev`](https://github.com/cheslijones/tls-dev-k8s/blob/main/client/Dockerfile.dev): This is the `docker` configuration for how to build the `client` image.
 - [`./skaffold.yaml`](https://github.com/cheslijones/tls-dev-k8s/blob/main/skaffold.yaml): This configuration will be how we spin the cluster up and the services. It does a number of cool things like checking the `docker` running in `minikube` to see if our services have been built into images, and if not, it will run our `Dockerfile.dev` to build the image. In addition, it will run and destroy the `deployment.yaml` when start and stop the cluster. Pretty cool and time saving stuff.
 
 ### Getting the IP of the Cluster
@@ -226,10 +227,10 @@ You'll probably ask yourself, "So if my `minikube ip` address changes, I'll need
 
 Normally, we would just have a file called `ingress.yaml` and just modify it. But for brevity, and hopefully not causing too much confusion, I made two `ingress` files:
 
-1. `ingress-ip.yaml` serves our initial use case of just testing that cluser is working at our `minikube ip`. In most cases, if you are just doing 100% local dev and not using external Web APIs, this is more than sufficient.
+1. `ingress-ip.yaml` serves our initial use case of just testing that cluser is working at our `minikube ip`. In most cases, if you are just doing 100% local dev and not using external Web APIs, this is sufficient.
 2. `ingress-domain.yaml` is what we would change our `ingress.yaml` if we want to use a domain name and TLS certificates in local dev.
 
-So really don't need both. I just have two so that all we need to do to test the `host` changes is comment out/uncomment two lines in the `skaffold.yaml`. 
+Really don't need both. I just have two so that all we need to do to test the `host` changes is comment out/uncomment two lines in the `skaffold.yaml`. 
 
 At the bottom changes this:
 
@@ -251,14 +252,14 @@ deploy:
       - k8s/ingress-domain.yaml 
       - client/deployment.yaml
 ```
-### Testing `host` Modifications Work
+### Testing `host` DNS Works
 
 Spin up the cluster again with:
 
 ```
 skaffold dev
 ```
-In your browser, now navigate to `testapp.local`.
+In your browser, now navigate to `testapp.local`. 
 
 Again, you should see the `create-react-app` page. As well, navigating to `https://testapp.local` we get the same warning.
 
@@ -266,7 +267,7 @@ Do a `CTRL + C` to stop the cluster.
 
 ## <a name="certificate"></a> Adding TLS certificate
 
-At this point, our cluster spinning up correctly and the `host` naming is working too. Now we need to add the TLS certificate.
+At this point, our cluster spinning up correctly and the local DNS is working too. Now we need to add the TLS certificate.
 
 ### Installing `mkcert` and Generating Certificates
 
@@ -311,7 +312,7 @@ cert-manager-86548b886-wcl6r               1/1     Running   0          29s
 cert-manager-cainjector-6d59c8d4f7-hws49   1/1     Running   0          29s
 cert-manager-webhook-578954cdd-hn749       1/1     Running   0          29s
 ```
-When `READY` is `1/1` for all through, you are good to continue.
+When `READY` is `1/1` for all three, you are good to continue.
 
 ### Adding the Certficates to k8s Secrets
 
