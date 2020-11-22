@@ -5,7 +5,7 @@ This repo just demonstrates how to implement a TLS certificate in a local develo
 There were a few issues I came across when I was integrating the current web app I'm working on with Azure AD and a few other web APIs:
 
 1. Needing `https://` for redirect URLs. `http://` only works with `localhost`, which circumvents cluster routing.
-2. Sure, you can just provide a redirect URL of `https://{minikube ip}`, but the browser "safety" warning messages due to an invalid certificate get pretty annoying.
+2. Sure, you can just provide a redirect URL of `https://<minikube-ip>`, but the browser "safety" warning messages due to an invalid certificate get pretty annoying.
 3. While you can implement TLS on an IP address--[it isn't a common practice](https://stackoverflow.com/questions/2043617/is-it-possible-to-have-ssl-certificate-for-ip-address-not-domain-name)--it is prohibited on non-public IPs (e.g., `192.168.x.x`), which is likely what `minikube ip` will provide.
 4. **Most importantly**: *the need to encrypt data both ways when communicating with an external web API*.
 
@@ -125,7 +125,7 @@ Cool, you are now set with `minikube` running.
 
 The repo comes with the `./ingress-ip.yaml`, `./client/deployment.yaml`, `./client/Dockerfile.dev`, and `./skaffold.yaml` already configured. They will do the following:
 
-- [`./ingress.yaml`](https://github.com/cheslijones/tls-dev-k8s/blob/main/k8s/ingress.yaml): This your `ingress-nginx` ingress controller configuration. It accepts traffic for our web application and then routes it to the appropriate running service. For example, traffic going to our root route (`http://example.com/`) will be routed to the running `client` app.
+- [`./ingress-ip.yaml`](https://github.com/cheslijones/tls-dev-k8s/blob/main/k8s/ingress.yaml): This your `ingress-nginx` ingress controller configuration. It accepts traffic for our web application and then routes it to the appropriate running service. For example, traffic going to our root route (`http://example.com/`) will be routed to the running `client` app.
 - [`./client/deployment.yaml`](https://github.com/cheslijones/tls-dev-k8s/blob/main/client/deployment.yaml): This is the configuration for the `create-react-app` `client` service. This gives the `client` service an IP in the cluster so when `ingress-nginx` receives traffic heading to `/`, it knows what Deployment to send the traffic to.
 - [`./skaffold.yaml`](https://github.com/cheslijones/tls-dev-k8s/blob/main/skaffold.yaml): This configuration will be how we spin the cluster up and the services. It does a number of cool things like checking the `docker` running in `minikube` to see if our services have been built into images, and if not, it will run our `Dockerfile.dev` to build the image. In addition, it will run and destroy the `deployment.yaml` when start and stop the cluster. Pretty cool and time saving stuff.
 
@@ -195,11 +195,77 @@ If everything is working, you should be greeted by the running `create-react-app
 
 [<img src="https://assets.digitalocean.com/articles/66983/React_template_project.png">](https://assets.digitalocean.com/articles/66983/React_template_project.png)
 
+Great! So we know our application is being deployed correctly into `minikube` from `skaffold`. You can press `CTRL + C` to stop the cluster from running and `skaffold` will automatically stop the cluster.
+
+Of course, if you try to go to `https://<minikube-ip>` you'll be greeted with this:
+
+[<img src="https://helpdeskgeek.com/wp-content/pictures/2019/05/connection-is-not-private.png.webp">](https://helpdeskgeek.com/wp-content/pictures/2019/05/connection-is-not-private.png.webp)
+
+Now are are ready to move on to implementing TLS.
+
 ## <a name="host"></a> Modifying the host file
 
+### Giving the App a Name
 
+The first decision we need to make is determining what to call it. For this example, I've just decided on `testapp.local`. At work, I use the name `companyapp.local`.
+
+### Modifying the Host File
+
+It varies between operating systems, so you can refer to [this article](https://phoenixnap.com/kb/how-to-edit-hosts-file-in-windows-mac-or-linux) about how to modify the `host` file for your OS. From the looks of it, the steps are pretty similar:
+
+1. Add an entry mapping the `minikube ip` to the domain name:
+   ```
+   # in my case
+   192.168.64.8     testapp.local
+   ```
+2. Refreshing your local DNS by either logging out and back in, restarting, or running some command.
+
+You'll probably ask yourself, "So if my `minikube ip` address changes, I'll need to redo this?" Unfortunately, yes. Fortunately, the `minikube ip` will stay the same for the life of that particular VM. If you do a `minikube delete`, then it will change. *If someone has a suggestion for a more efficient way to keep the IP in the host file up-to-date, please let me know*.
+
+### The `ingress-domain.yaml` File
+
+Normally, we would just have a file called `ingress.yaml` and just modify it. But for brevity, and hopefully not causing too much confusion, I made two `ingress` files:
+
+1. `ingress-ip.yaml` serves our initial use case of just testing that cluser is working at our `minikube ip`. In most cases, if you are just doing 100% local dev and not using external Web APIs, this is more than sufficient.
+2. `ingress-domain.yaml` is what we would change our `ingress.yaml` if we want to use a domain name and TLS certificates in local dev.
+
+So really don't need both. I just have two so that all we need to do to test the `host` changes is comment out/uncomment two lines in the `skaffold.yaml`. 
+
+At the bottom changes this:
+
+```
+...
+deploy:
+  kubectl:
+    manifests:
+      - k8s/ingress-ip.yaml 
+      # - k8s/ingress-domain.yaml 
+      - client/deployment.yaml
+```
+To this:
+```
+deploy:
+  kubectl:
+    manifests:
+      # - k8s/ingress-ip.yaml 
+      - k8s/ingress-domain.yaml 
+      - client/deployment.yaml
+```
+### Testing `host` Modifications Work
+
+Spin up the cluster again with:
+
+```
+skaffold dev
+```
+In your browser, now navigate to `testapp.local`.
+
+Again, you should see the `create-react-app` page. As well, navigating to `https://testapp.local` we get the same warning.
 
 ## <a name="certificate"></a> Adding TLS certificate
+
+At this point, our cluster spinning up correctly and the `host` naming is working too.
+
 
 # Questions, Issues and Feedback
 

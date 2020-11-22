@@ -25,6 +25,6 @@ build:
 deploy:
   kubectl:
     manifests:
-      - k8s/ingress-ip.yaml 
-      # - k8s/ingress-domain.yaml 
+      # - k8s/ingress-ip.yaml 
+      - k8s/ingress-domain.yaml 
       - client/deployment.yaml
