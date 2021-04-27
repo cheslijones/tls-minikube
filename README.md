@@ -263,11 +263,11 @@ secret/tls-localhost-dev created
 
 **DO NOT COMMIT THESE. Either add `*.pem` to `.gitignore` or just delete them as they are not needed after the previous step.**
 
-### The `issuer.yaml` File
+### The `tls.yaml` File
 
-We need to apply the `issuer.yaml` manifest to our cluster now so that the certificate can be aquired and added to all traffic:
+We need to apply the `tls.yaml` manifest to our cluster now so that the certificate can be aquired and added to all traffic:
 ```
-kubectl apply -f k8s/issuer.yaml
+kubectl apply -f k8s/tls.yaml
 ```
 If successful, you should see:
 
