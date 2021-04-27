@@ -5,7 +5,7 @@ metadata:
   namespace: cert-manager
 spec:
   ca:
-    secretName: tls-testapp-dev
+    secretName: tls-localhost-dev
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -13,9 +13,9 @@ metadata:
   name: letsencrypt-dev-certificate
   namespace: cert-manager
 spec:
-  secretName: tls-testapp-dev
+  secretName: tls-localhost-dev
   dnsNames:
-    - testapp.local
+    - localhost
   issuerRef:
     name: letsencrypt-dev-issuer
     kind: Issuer
